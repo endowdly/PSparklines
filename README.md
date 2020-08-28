@@ -1,0 +1,2 @@
+# Psparklines
+ Sparklines for PowerShell!
