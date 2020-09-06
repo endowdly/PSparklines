@@ -1,0 +1,4 @@
+✘ Fix clamping problem @cancelled(20-09-06 15:07)
+    -- The scaling issue is font-based (¬_¬ )
+✔ Finish Comment-Based Help @done(20-09-06 19:45)
+✔ Refactor Get-Sparkline @done(20-09-06 19:45)
