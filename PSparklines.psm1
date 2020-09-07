@@ -382,7 +382,7 @@ filter Set-Emphasis {
     )
 
     $o = New-Emphasis $Color $Comparer $Target 
-    $this.EmphasisTable[$o.Color.ToString()] = $o
+    $_[$o.Color.ToString()] = $o
 
     $_
 }
