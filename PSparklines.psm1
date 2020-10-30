@@ -387,104 +387,119 @@ filter Set-Emphasis {
     $_
 }
 
+
 function Get-Sparkline {
-    <#
-    .Synopsis
-      Return an array of sparkline objects for a given list of input numbers.
-    .Description
-      Return an array of sparkline objects for a given list of input numbers.
-    .Example
-      PS> Get-Sparkline -Numbers 20, 80, 60, 100 
-        Returns sparkline objects representing the numbers 20, 80, 60, 100.
-    .Example
-      PS> Get-Sparkline -Numbers 20, 80, 60, 100 | Write-Sparkline
-        
-      ▁▆▄█
-    .Example
-      PS> Get-Sparkline -Numbers 20, 80, 60, 100 -NumLines 3 | Write-Sparkline
-       ▂ █
-       █▄█
-      ▁███
-    .Example 
-      PS> Get-Sparkline -Numbers 20, 80, 60, 100 -EmphasisTable (New-Emphasis | 
-        Add-Emphasis Red Gt 70) | Show-Sparkline
-    
-      This will display a sparkline in the host with the second and fourth bar colored red, 
-      if the host is capable.
-    .Example
-      PS> -join (Get-Sparkline 1,2,3,4 | Show-Sparkline 6>&1)
+  <#
+  .Synopsis
+    Return an array of sparkline objects for a given list of input numbers.
+  .Description
+    Return an array of sparkline objects for a given list of input numbers.
+  .Example
+    PS> Get-Sparkline -Numbers 20, 80, 60, 100 
+      Returns sparkline objects representing the numbers 20, 80, 60, 100.
+  .Example
+    PS> Get-Sparkline -Numbers 20, 80, 60, 100 | Write-Sparkline
+      
+    ▁▆▄█
+  .Example
+    PS> Get-Sparkline -Numbers 20, 80, 60, 100 -NumLines 3 | Write-Sparkline
+     ▂ █
+     █▄█
+    ▁███
+  .Example 
+    PS> Get-Sparkline -Numbers 20, 80, 60, 100 -EmphasisTable (New-Emphasis | 
+      Add-Emphasis Red Gt 70) | Show-Sparkline
+  
+    This will display a sparkline in the host with the second and fourth bar colored red, 
+    if the host is capable.
+  .Example
+    PS> -join (Get-Sparkline 1,2,3,4 | Show-Sparkline 6>&1)
 
-      One possible way to capture the output of `Show-Sparkline`.
-    .Link
-      New-EmphasisTable
-    .Link
-      Add-Emphasis
-    .Link
-      Set-Emphasis
-    .Link
-      Write-Sparkline
-    .Link
-      Show-Sparkline
-    .Inputs
-      double[]
-    .Outputs
-      Sparkline[]
-    .Notes
-      Replaces sparklines(numbers=[], num_lines=1, emph=None, verboe=False,
-        minimum=None, maximum=None, wrap=None). Wrap is not
-    #> 
+    One possible way to capture the output of `Show-Sparkline`.
+  .Link
+    New-EmphasisTable
+  .Link
+    Add-Emphasis
+  .Link
+    Set-Emphasis
+  .Link
+    Write-Sparkline
+  .Link
+    Show-Sparkline
+  .Inputs
+    double[]
+  .Outputs
+    Sparkline[]
+  .Notes
+    Replaces sparklines(numbers=[], num_lines=1, emph=None, verboe=False,
+      minimum=None, maximum=None, wrap=None). Wrap is not
+  #> 
 
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')] 
-    param( 
-        # An array of numbers to turn into a sparkline.
-        [double[]] $Numbers 
-        , 
-        # The number of lines to write or show the sparkline on. Must be positive.
-        [ValidateScript({ Assert-Positive $_ })]
-        [int] $NumLines = 1
-        , 
-        # A Dictionary that will color certain sparks based on simple logical tests.
-        [System.Collections.Generic.Dictionary[string, Emphasis]] $EmphasisTable
-        , 
-        # The lowest number to display on the sparkline--a high-pass filter.
-        [double] $Minimum
-        ,
-        # The highest number to display on the sparkline--a low-pass filter.
-        [double] $Maximum
-    )
+  [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')] 
+  param( 
+      # An array of numbers to turn into a sparkline.
+      [Parameter(ValueFromPipeline)]
+      [double[]] $Numbers 
+      , 
+      # The number of lines to write or show the sparkline on. Must be positive.
+      [ValidateScript( { Assert-Positive $_ })]
+      [int] $NumLines = 1
+      , 
+      # A Dictionary that will color certain sparks based on simple logical tests.
+      [System.Collections.Generic.Dictionary[string, Emphasis]] $EmphasisTable
+      , 
+      # The lowest number to display on the sparkline--a high-pass filter.
+      [double] $Minimum
+      ,
+      # The highest number to display on the sparkline--a low-pass filter.
+      [double] $Maximum
+  )
 
-    $t = $EmphasisTable
+  begin {
+      $ls = [System.Collections.ArrayList] @()
+  }
 
-    # Remove params from the hashtable to allow for easy-reuse
-    [void] $PSBoundParameters.Remove('EmphasisTable')
+  process {
+      [void] $Numbers.ForEach($ls.Add($_))
+  }
 
-    Test-NegativeNumber $Numbers
+  end {
+      $PSBoundParameters.Numbers = $ls.ToArray()
+  
+      $t = $EmphasisTable
 
-    $x = Get-EmphasisIndex $Numbers $t
+      # Remove params from the hashtable to allow for easy-reuse
+      [void] $PSBoundParameters.Remove('EmphasisTable')
 
-    # At this point, the original python script uses batch() 
-    # Batch is a Split-Array function that chunks an array into subarrays
+      Test-NegativeNumber $ls.ToArray()
 
-    Get-ScaledValues @PSBoundParameters | ForEach-Object { $c = 0 } {
-        $v = $_ 
+      $x = Get-EmphasisIndex $ls.ToArray() $t
 
-        1..$NumLines | ForEach-Object { $r = 0 } {         
-            $vs = Min $v 8
-            $v = Max 0 ($v - 8)
+      # At this point, the original python script uses batch() 
+      # Batch is a Split-Array function that chunks an array into subarrays
 
-            [Spark] @{
-                Row   = $r
-                Col   = $c
-                Val   = $vs
-                Block = $Config.Blocks[$vs]
-                Color = ($PSparklines.DefaultForegroundColor, $x[$c])[$x.ContainsKey($c)]
-            }
+      Get-ScaledValues @PSBoundParameters | ForEach-Object { $c = 0 } {
+          $v = $_ 
 
-            $r++
-        }
+          1..$NumLines | ForEach-Object { $r = 0 } {         
+              $vs = Min $v 8
+              $v = Max 0 ($v - 8)
 
-        $c++
-    }
+              [Spark] @{
+                  Row   = $r
+                  Col   = $c
+                  Val   = $vs
+                  Block = $Config.Blocks[$vs]
+                  Color = ($PSparklines.DefaultForegroundColor, $x[$c])[$x.ContainsKey($c)]
+              }
+
+              $r++
+          }
+
+          $c++
+      }
+
+  }
 }
 
 
