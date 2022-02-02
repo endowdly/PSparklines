@@ -312,7 +312,7 @@ function Add-Emphasis {
       Because the underlying Dictionary will not accept duplicate keys, the type will throw
       an exception if you try to add duplicate color keys. Use `Set-Emphasis` to change an emphasis entry. 
     .Example
-      PS> New-EmphasisTable | Add-Emphasis Red Gt 50
+      PS> New-EmphasisTable | Add-Emphasis Red -Gt 50
        Creates an emphasis dictionary with an emphasis that colors any sparkline representing
        a number greater than 50 red. Save to a variable and add to `Get-Sparkline`. 
     .Link
@@ -391,7 +391,7 @@ function Set-Emphasis {
       A dictionary must be piped into this filter.
       Use `Set-Emphasis` to change the emphasis for an existing color key.
     .Example
-      PS> $t | Set-Emphasis Red Gt 70
+      PS> $t | Set-Emphasis Red -Gt 70
        Changes the Emphasis for the Red entry in the EmphasisTable t. 
        If the entry does not exist, Set-Emphasis will add it. 
     .Link
@@ -481,7 +481,7 @@ function Get-Sparkline {
     ▁███
   .Example 
     PS> Get-Sparkline -Numbers 20, 80, 60, 100 -EmphasisTable (New-Emphasis | 
-      Add-Emphasis Red Gt 70) | Show-Sparkline
+      Add-Emphasis Red -Gt 70) | Show-Sparkline
   
     This will display a sparkline in the host with the second and fourth bar colored red, 
     if the host is capable.
