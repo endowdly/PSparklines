@@ -1,3 +1,6 @@
+using namespace System.Collections;
+using namespace System.Collections.Generic;
+
 <#
  
    ____  ____                   _    _ _                 
@@ -277,7 +280,7 @@ function New-EmphasisTable {
       Use `Add-` and `Set-Emphasis` instead.
       The underlying Dictionary type will not allow duplicate key entries.
     .Example
-      PS> New-EmphasisTable | Add-Emphasis Red Gt 50
+      PS> New-EmphasisTable | Add-Emphasis Red -Gt 50
        Creates an emphasis dictionary with an emphasis that colors any sparkline representing
        a number greater than 50 red. Add to `Get-Sparkline`.
     .Link
@@ -294,11 +297,11 @@ function New-EmphasisTable {
       Replaces the emph pattern used in sparklines.py 
     #>
 
-    [System.Collections.Generic.Dictionary[string, Emphasis]]::new()
+    [Dictionary[string, Emphasis]]::new()
 }
 
 
-filter Add-Emphasis { 
+function Add-Emphasis { 
     <#
     .Synopsis
       A simple filter function that adds an emphasis to an Emphasis Dictionary.
@@ -328,22 +331,57 @@ filter Add-Emphasis {
 
     param(
         # The color to highlight numbers meeting the emphasis test.
+        [Parameter(Position = 0)]
         [ConsoleColor] $Color
         ,
         # The logic test on Target. Set: Eq, Ne, Lt, Le, Gt, Ge.
-        [Comparer] $Comparer
-        ,
+        # [Comparer] $Comparer
+        # ,
         # The a numeric representing the target to test against. Must be castable to a double.
+        [Parameter(Position = 2)]
         [double] $Target
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'EqualSet')]
+        [switch] $Eq
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'NotEqualSet')]
+        [switch] $Ne
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'LessThanSet')]
+        [switch] $Lt
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'LessThanOrEqualSet')]
+        [switch] $Le
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'GreaterThanSet')]
+        [switch] $Gt
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'GreaterThanOrEqualSet')]
+        [switch] $Ge
+        ,
+        [Parameter(ValueFromPipeline)]
+        [Dictionary[string, Emphasis]] $InputObject
     )
 
-    $o = New-Emphasis $Color $Comparer $Target 
+    process { 
+        [Comparer] $comparer = 
+            switch ($PSCmdlet.ParameterSetName) {
+                EqualSet              { 'Eq' }
+                NotEqualSet           { 'Ne' }
+                LessThanSet           { 'Lt' }
+                LessThanOrEqualSet    { 'Le' }
+                GreaterThanSet        { 'Gt' }
+                GreaterThanOrEqualSet { 'Ge' }
+            }
 
-    [void] $_.Add($o.Color.ToString(), $o)
-    $_
+        $o = New-Emphasis $Color $comparer $Target 
+
+        [void] $InputObject.Add($o.Color.ToString(), $o)
+        $InputObject
+    }
 }
 
-filter Set-Emphasis { 
+function Set-Emphasis { 
     <#
     .Synopsis
       A simple filter function that sets an emphasis to an Emphasis Dictionary.
@@ -371,25 +409,60 @@ filter Set-Emphasis {
     #>
 
     param(
-        # The color to highlight numbers meeting the emphasis test. Must be castable to a ConsoleColor. 
+        # The color to highlight numbers meeting the emphasis test.
+        [Parameter(Position = 0)]
         [ConsoleColor] $Color
         ,
         # The logic test on Target. Set: Eq, Ne, Lt, Le, Gt, Ge.
-        [Comparer] $Comparer
-        ,
+        # [Comparer] $Comparer
+        # ,
         # The a numeric representing the target to test against. Must be castable to a double.
-        [double] $Target 
+        [Parameter(Position = 2)]
+        [double] $Target
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'EqualSet')]
+        [switch] $Eq
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'NotEqualSet')]
+        [switch] $Ne
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'LessThanSet')]
+        [switch] $Lt
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'LessThanOrEqualSet')]
+        [switch] $Le
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'GreaterThanSet')]
+        [switch] $Gt
+        ,
+        [Parameter(Position = 1, ParameterSetName = 'GreaterThanOrEqualSet')]
+        [switch] $Ge
+        ,
+        [Parameter(ValueFromPipeline)]
+        [Dictionary[string, Emphasis]] $InputObject 
     )
 
-    $o = New-Emphasis $Color $Comparer $Target 
-    $_[$o.Color.ToString()] = $o
+    process { 
+        [Comparer] $comparer = 
+            switch ($PSCmdlet.ParameterSetName) {
+                EqualSet              { 'Eq' }
+                NotEqualSet           { 'Ne' }
+                LessThanSet           { 'Lt' }
+                LessThanOrEqualSet    { 'Le' }
+                GreaterThanSet        { 'Gt' }
+                GreaterThanOrEqualSet { 'Ge' }
+            }
 
-    $_
+        $o = New-Emphasis $Color $comparer $Target 
+        $InputObject[$o.Color.ToString()] = $o
+
+        $InputObject
+    }
 }
 
 
 function Get-Sparkline {
-  <#
+    <#
   .Synopsis
     Return an array of sparkline objects for a given list of input numbers.
   .Description
@@ -435,71 +508,70 @@ function Get-Sparkline {
       minimum=None, maximum=None, wrap=None). Wrap is not
   #> 
 
-  [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')] 
-  param( 
-      # An array of numbers to turn into a sparkline.
-      [Parameter(ValueFromPipeline)]
-      [double[]] $Numbers 
-      , 
-      # The number of lines to write or show the sparkline on. Must be positive.
-      [ValidateScript( { Assert-Positive $_ })]
-      [int] $NumLines = 1
-      , 
-      # A Dictionary that will color certain sparks based on simple logical tests.
-      [System.Collections.Generic.Dictionary[string, Emphasis]] $EmphasisTable
-      , 
-      # The lowest number to display on the sparkline--a high-pass filter.
-      [double] $Minimum
-      ,
-      # The highest number to display on the sparkline--a low-pass filter.
-      [double] $Maximum
-  )
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')] 
+    param( 
+        # An array of numbers to turn into a sparkline.
+        [Parameter(ValueFromPipeline)]
+        [double[]] $Numbers 
+        , 
+        # The number of lines to write or show the sparkline on. Must be positive.
+        [ValidateScript({ Assert-Positive $_ })]
+        [int] $NumLines = 1
+        , 
+        # A Dictionary that will color certain sparks based on simple logical tests.
+        [System.Collections.Generic.Dictionary[string, Emphasis]] $EmphasisTable
+        , 
+        # The lowest number to display on the sparkline--a high-pass filter.
+        [double] $Minimum
+        ,
+        # The highest number to display on the sparkline--a low-pass filter.
+        [double] $Maximum
+    )
 
-  begin {
-      $ls = [System.Collections.ArrayList] @()
-  }
+    begin {
+        $ls = [System.Collections.ArrayList] @()
+    }
 
-  process {
-      [void] $Numbers.ForEach($ls.Add($_))
-  }
+    process {
+        [void] $Numbers.ForEach($ls.Add($_))
+    }
 
-  end {
-      $PSBoundParameters.Numbers = $ls.ToArray()
+    end {
+        $PSBoundParameters.Numbers = $ls.ToArray()
   
-      $t = $EmphasisTable
+        $t = $EmphasisTable
 
-      # Remove params from the hashtable to allow for easy-reuse
-      [void] $PSBoundParameters.Remove('EmphasisTable')
+        # Remove params from the hashtable to allow for easy-reuse
+        [void] $PSBoundParameters.Remove('EmphasisTable')
 
-      Test-NegativeNumber $ls.ToArray()
+        Test-NegativeNumber $ls.ToArray()
 
-      $x = Get-EmphasisIndex $ls.ToArray() $t
+        $x = Get-EmphasisIndex $ls.ToArray() $t
 
-      # At this point, the original python script uses batch() 
-      # Batch is a Split-Array function that chunks an array into subarrays
+        # At this point, the original python script uses batch() 
+        # Batch is a Split-Array function that chunks an array into subarrays
 
-      Get-ScaledValues @PSBoundParameters | ForEach-Object { $c = 0 } {
-          $v = $_ 
+        Get-ScaledValues @PSBoundParameters | ForEach-Object { $c = 0 } {
+            $v = $_ 
 
-          1..$NumLines | ForEach-Object { $r = 0 } {         
-              $vs = Min $v 8
-              $v = Max 0 ($v - 8)
+            1..$NumLines | ForEach-Object { $r = 0 } {         
+                $vs = Min $v 8
+                $v = Max 0 ($v - 8)
 
-              [Spark] @{
-                  Row   = $r
-                  Col   = $c
-                  Val   = $vs
-                  Block = $Config.Blocks[$vs]
-                  Color = ($PSparklines.DefaultForegroundColor, $x[$c])[$x.ContainsKey($c)]
-              }
+                [Spark] @{
+                    Row   = $r
+                    Col   = $c
+                    Val   = $vs
+                    Block = $Config.Blocks[$vs]
+                    Color = ($PSparklines.DefaultForegroundColor, $x[$c])[$x.ContainsKey($c)]
+                }
 
-              $r++
-          }
+                $r++
+            }
 
-          $c++
-      }
-
-  }
+            $c++
+        }
+    }
 }
 
 

@@ -34,7 +34,7 @@ Sparklines for PowerShell!
     Add-Emphasis
     Set-Emphasis
 .Example
-  PS> Get-Sparkline 25, 50, 75, 100, 25 -EmphasisTable (New-EmphasisTable | Add-Emphasis Red Gt 50) |
+  PS> Get-Sparkline 25, 50, 75, 100, 25 -EmphasisTable (New-EmphasisTable | Add-Emphasis Red -Gt 50) |
     Show-Sparkline
 
     Display a sparkline in the host of line height 1 with every bar representing a number greater than 50
@@ -60,8 +60,8 @@ PS> Get-Sparkline $n -NumLines 3 | Write-Sparkline
 ██▆█▁██████
 
 PS> $t = New-EmphasisTable |
-    Add-Emphasis Red Gt 50 |
-    Add-Emphasis Green Eq 36
+    Add-Emphasis Red -Gt 50 |
+    Add-Emphasis Green -Eq 36
 ```
 
 ![Result](./example.png)
