@@ -2,6 +2,23 @@
 
 Sparklines for PowerShell!
 
+## Install
+
+### PowerShell Gallery
+
+```powershell
+Install-Module PSparklines # -Scope CurrentUser
+```
+
+### Scoop
+
+```powershell
+scoop bucket add endo-scoop "https://github.com/endowdly/endo-scoop"  # Name the bucket whatever you'd like :)
+scoop install psparklines
+```
+
+## Usage
+ 
 ``` powershell
 <#
 .Synopsis
@@ -65,3 +82,9 @@ PS> $t = New-EmphasisTable |
 ```
 
 ![Result](./example.png)
+
+## Why?
+
+This is just a quick little module to help visualize sparklines in the command-line.
+It is explained better in the [sparklines repo](github.com/deeplook/sparklines).
+The [Wikipedia](https://en.wikipedia.org/wiki/Sparkline) entry also offers insight.
