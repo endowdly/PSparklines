@@ -62,17 +62,23 @@ param()
 #>
 #region Setup ------------------------------------------------------------------
 
+# Module variables go here
+Set-Variable PSparklines -Option ReadOnly -Value @{
+    DefaultForegroundColor = [Console]::ForegroundColor
+    ModuleName = 'PSparklines'
+}
+
 $ErrorActionPreference = 'Stop' 
-$ModuleRoot = Split-Path $PSScriptRoot -Leaf
+# $ModuleRoot = Split-Path $PSScriptRoot -Leaf
 $ResourceFile = @{ 
     BindingVariable = 'Resources'
     BaseDirectory = $PSScriptRoot
-    FileName = $ModuleRoot + '.Resources.psd1'
+    FileName = $PSparklines.ModuleName + '.Resources.psd1'
 }
 $ConfigFile = @{
     BindingVariable = 'Config'
     BaseDirectory = $PSScriptRoot
-    FileName = $ModuleRoot + '.Config.psd1'
+    FileName = $PSparklines.ModuleName + '.Config.psd1'
 }
 
 # Try to import the resource file
@@ -97,10 +103,7 @@ catch {
     } 
 }
 
-# Module variables go here
-Set-Variable PSparklines -Option ReadOnly -Value @{
-    DefaultForegroundColor = [Console]::ForegroundColor
-}
+
 
 #endregion
 
