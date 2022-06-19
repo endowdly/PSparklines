@@ -334,31 +334,35 @@ function Add-Emphasis {
         [Parameter(Position = 0)]
         [ConsoleColor] $Color
         ,
-        # The logic test on Target. Set: Eq, Ne, Lt, Le, Gt, Ge.
-        # [Comparer] $Comparer
-        # ,
         # The a numeric representing the target to test against. Must be castable to a double.
         [Parameter(Position = 2)]
         [double] $Target
         ,
+        # An equals comparison.
         [Parameter(Position = 1, ParameterSetName = 'EqualSet')]
         [switch] $Eq
         ,
+        # A not equals comparison.
         [Parameter(Position = 1, ParameterSetName = 'NotEqualSet')]
         [switch] $Ne
         ,
+        # A less-than comparison.
         [Parameter(Position = 1, ParameterSetName = 'LessThanSet')]
         [switch] $Lt
         ,
+        # A less-than-or-equals comparison.
         [Parameter(Position = 1, ParameterSetName = 'LessThanOrEqualSet')]
         [switch] $Le
         ,
+        # A greater-than comparison.
         [Parameter(Position = 1, ParameterSetName = 'GreaterThanSet')]
         [switch] $Gt
         ,
+        # A greater-than-or-equals comparison.
         [Parameter(Position = 1, ParameterSetName = 'GreaterThanOrEqualSet')]
         [switch] $Ge
         ,
+        # The incoming Emphasis object
         [Parameter(ValueFromPipeline)]
         [Dictionary[string, Emphasis]] $InputObject
     )
@@ -413,31 +417,35 @@ function Set-Emphasis {
         [Parameter(Position = 0)]
         [ConsoleColor] $Color
         ,
-        # The logic test on Target. Set: Eq, Ne, Lt, Le, Gt, Ge.
-        # [Comparer] $Comparer
-        # ,
         # The a numeric representing the target to test against. Must be castable to a double.
         [Parameter(Position = 2)]
         [double] $Target
         ,
+        # An equals comparison.
         [Parameter(Position = 1, ParameterSetName = 'EqualSet')]
         [switch] $Eq
         ,
+        # A not equals comparison.
         [Parameter(Position = 1, ParameterSetName = 'NotEqualSet')]
         [switch] $Ne
         ,
+        # A less-than comparison.
         [Parameter(Position = 1, ParameterSetName = 'LessThanSet')]
         [switch] $Lt
         ,
+        # A less-than-or-equals comparison.
         [Parameter(Position = 1, ParameterSetName = 'LessThanOrEqualSet')]
         [switch] $Le
         ,
+        # A greater-than comparison.
         [Parameter(Position = 1, ParameterSetName = 'GreaterThanSet')]
         [switch] $Gt
         ,
+        # A greater-than-or-equals comparison.
         [Parameter(Position = 1, ParameterSetName = 'GreaterThanOrEqualSet')]
         [switch] $Ge
         ,
+        # The incoming Emphasis object
         [Parameter(ValueFromPipeline)]
         [Dictionary[string, Emphasis]] $InputObject 
     )
