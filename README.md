@@ -86,5 +86,5 @@ PS> $t = New-EmphasisTable |
 ## Why?
 
 This is just a quick little module to help visualize sparklines in the command-line.
-It is explained better in the [sparklines repo](github.com/deeplook/sparklines).
+It is explained better in the [sparklines repo](http://github.com/deeplook/sparklines).
 The [Wikipedia](https://en.wikipedia.org/wiki/Sparkline) entry also offers insight.
