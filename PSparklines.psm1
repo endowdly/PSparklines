@@ -544,7 +544,7 @@ function Get-Sparkline {
     }
 
     process {
-        [void] $Numbers.ForEach($ls.Add($_))
+        [void] $Numbers.ForEach({ $ls.Add($_) })
     }
 
     end {
