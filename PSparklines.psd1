@@ -12,7 +12,7 @@
 RootModule = 'PSparklines.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.2'
+ModuleVersion = '1.0.3'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -99,16 +99,35 @@ PrivateData = @{
         Tags = 'Console', 'Sparklines'
 
         # A URL to the license for this module.
-        # LicenseUri = 'https://raw.githubusercontent.com/endowdly/PSparklines/master/LICENSE'
+        LicenseUri = 'https://raw.githubusercontent.com/endowdly/PSparklines/master/LICENSE'
 
         # A URL to the main website for this project.
-        # ProjectUri = 'https://github.com/endowdly/PSparklines'
+        ProjectUri = 'https://github.com/endowdly/PSparklines'
 
         # A URL to an icon representing this module.
         # IconUri = ''
 
         # ReleaseNotes of this module
-        # ReleaseNotes = ''
+        ReleaseNotes = @' 
+1.0.0 -- Initial Release -- 2020 Sep 6
+
+1.0.1 -- Patch -- 2022 Feb 2
+Change PSparklines.psm1: 
+- Add- and Set-Emphasis functions now take switched parameters for comparisons instead of a validated string.
+  This feature is in-line with Foreach- and Where-Object. 
+  Behavior is unchanged.
+
+1.0.2 -- Hotfix -- 2022 Jun 19
+Change PSparklines.psm1:
+- Move module variable definition to top
+- Change resource variable binding to allow version side-loading
+
+1.0.3 -- Hotfix -- 2022 Jun 23
+Change PSparklines.psm1
+- Fix empty negative number warning on non-pipelined input.
+  This error was caused by a typo in magic method call.
+  Merged PR#1. 
+'@
 
     } # End of PSData hashtable
 
