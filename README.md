@@ -38,7 +38,7 @@ PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
     New-Empahsis -Color 55 -Predicate { param($x) $x -like '5*' } # 55 is like a dark magenta
     New-Emphasis -Color 'Red' -Predicate { param($x) $x -gt 50 }
     New-Empahsis -Color 'Green' -Predicate { param($x) $x -eq 36 }
-) Show-Sparkline 
+) | Show-Sparkline 
 ```
 
 ![Result](./exampleNoAnsi.png)
@@ -52,7 +52,7 @@ PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
     New-Emphasis -Color 'Red' -Predicate { param($x) $x -gt 50 }
     New-Empahsis -Color 'Green' -Predicate { param($x) $x -eq 36 }
 
-) Show-Sparkline -Ansi
+) | Show-Sparkline -Ansi
 ```
 
 ![Result](./example.png)
