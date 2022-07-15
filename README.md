@@ -45,7 +45,7 @@ PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
 
 ```powershell
 
-# To show the difference between 16 bit color and 24 bit color *if your console supports VT ANSI commands and 24 bit color*
+# To show the difference between 4 bit color and 8 bit color *if your console supports VT ANSI commands and 8 bit color*
 
 PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
     New-Empahsis -Color 55 -Predicate { param($x) $x -like '5*' } # 55 is like a dark magenta
