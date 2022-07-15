@@ -24,7 +24,7 @@ using namespace System.Collections.Generic;
   Objects are added to a dictionary with functions that support auto-completion.
 
   This module does not implement the batching (array splitting) that sparklines used.
-  This module does not implement ANSI colors, although the new consoles for PowerShell support color codes.
+  Use the `Ansi` switch parameter with `Show-Sparkline` to take advantage of Ansi colors.
 
   This module also outputs Sparklines as objects and uses two different functions to write them.
   `Show-Sparkline` will write the sparkline to the host and STDINFO (6) and colorize based on an emphasis table.
@@ -38,18 +38,19 @@ using namespace System.Collections.Generic;
     Show-Sparkline
 
   Cmdlets/Functions for Emphasis:
-    New-EmphasisTable
-    Add-Emphasis
-    Set-Emphasis
+    New-Emphasis
 .Example
-  PS> Get-Sparkline 25, 50, 75, 100, 25 -EmphasisTable (New-EmphasisTable | Add-Emphasis Red Gt 50) |
-    Show-Sparkline
+  PS> Get-Sparkline 25, 50, 75, 100, 25 -Emphasis @(
+      New-Emphasis -Color 'Red' -Predicate { param($x) $x -gt 50 }
+    ) | Show-Sparkline
 
     Display a sparkline in the host of line height 1 with every bar representing a number greater than 50
     as ConsoleColor.Red
 #>
 
 param()
+
+# Idea: PowerShell 7 is so much easier to work with more 'programmatic' PS -- consider requiring it
 
 <#
  
@@ -66,10 +67,10 @@ param()
 Set-Variable PSparklines -Option ReadOnly -Value @{
     DefaultForegroundColor = [Console]::ForegroundColor
     ModuleName = 'PSparklines'
+    Esc = [char] 0x1b
 }
 
 $ErrorActionPreference = 'Stop' 
-# $ModuleRoot = Split-Path $PSScriptRoot -Leaf
 $ResourceFile = @{ 
     BindingVariable = 'Resources'
     BaseDirectory = $PSScriptRoot
@@ -119,22 +120,146 @@ catch {
 #region Module Classes ---------------------------------------------------------
 
 
-enum Comparer {
-    Eq
-    Ne
-    Gt
-    Ge
-    Lt
-    Le 
-}
+class Color { 
+    [byte] $R
+    [byte] $G
+    [byte] $B
+    [byte] $Value
+    [ConsoleColor] $ConsoleColor
 
+    Color($n) { 
+        $x = $n -as [int]
+
+        if ($x -is [int]) {
+            $this.Value = $n
+        } 
+        else {
+            $this.Value = 
+                switch ($n) {
+                    Black       { 0 }
+                    DarkRed     { 1 }
+                    DarkGreen   { 2 }
+                    DarkYellow  { 3 }
+                    DarkBlue    { 4 }
+                    DarkMagenta { 5 }
+                    DarkCyan    { 6 }
+                    Gray        { 7 }
+                    DarkGray    { 8 }
+                    Red         { 9 }
+                    Green       { 10 }
+                    Yellow      { 11 }
+                    Blue        { 12 }
+                    Magenta     { 13 }
+                    Cyan        { 14 }
+                    White       { 15 }
+                    default     { 0 } # Todo: Drawing.Color -> rgb -> ansi
+                } 
+        } 
+
+        $this.R, $this.G, $this.B = [Color]::RgbFromAnsi256($this.Value)
+        $this.ConsoleColor = [Color]::ConsoleColorFromAnsi($this.Value) 
+    }
+    
+    static [int] CubeValue($n) {
+        return @(
+            0
+            95
+            135
+            175
+            215
+            255
+        )[$n]
+    }
+
+    static [int[]] RgbFromAnsi256($n) {
+        $x =
+        switch ($n) {
+            { $n -lt 232 } {
+                $idx = $n - 16
+
+                [Color]::CubeValue($idx / 36),
+                [Color]::CubeValue($idx / 6 % 6),
+                [Color]::CubeValue($idx % 6)
+            }
+            default { 
+                $gr = ($n - 232) * 10 + 8
+
+                $gr, $gr, $gr
+            }
+        }
+
+        return $x
+    }
+
+    static [ConsoleColor] ClosestConsoleColorFromRgb($r, $g, $b) {
+        $color = 
+            if ($r -eq $g -and $g -eq $b) {
+                switch ($r) {
+                    { $r -gt 192 } { 0xf } # 0b1111
+                    { $r -gt 128 } { 7 }   # 0b0111
+                    { $r -gt 64 }  { 8 }   # 0b1000
+                    default { 0 }
+                } 
+            }
+            else {
+                $br = 
+                    if ($r -gt 128 -or $g -gt 128 -or $g -gt 128) {
+                        7
+                    }
+                    else {
+                        0
+                    }
+
+                $rb = if ($r -gt 64) { 4 } else { 0 } # 0b0100
+                $gb = if ($g -gt 64) { 2 } else { 0 } # 0b0010
+                $bb = if ($b -gt 64) { 1 } else { 0 } # 0b0001
+
+                $br -bor $rb -bor $gb -bor $bb 
+            }
+
+        return $color
+    }
+
+    static [ConsoleColor] ConsoleColorFromAnsi($n) {
+        $colorMap = @(
+            [ConsoleColor]::Black
+            [ConsoleColor]::DarkRed
+            [ConsoleColor]::DarkGreen
+            [ConsoleColor]::DarkYellow
+            [ConsoleColor]::DarkBlue
+            [ConsoleColor]::DarkMagenta
+            [ConsoleColor]::DarkCyan
+            [ConsoleColor]::Gray
+            [ConsoleColor]::DarkGray
+            [ConsoleColor]::Red
+            [ConsoleColor]::Green
+            [ConsoleColor]::Yellow
+            [ConsoleColor]::Blue
+            [ConsoleColor]::Magenta
+            [ConsoleColor]::Cyan
+            [ConsoleColor]::White
+        )
+        $color = 
+            switch ($n) {
+                { $n -lt 16 } { $colorMap[$n] } 
+                default { 
+                    $x, $y, $z = [Color]::RgbFromAnsi256($n) 
+                    [Color]::ClosestConsoleColorFromRgb($x, $y, $z)
+                }
+            }
+
+        return $color 
+    }
+
+    [string] ToString() {
+        return $this.ConsoleColor.ToString()
+    }
+}
 
 class Emphasis {
-    [ConsoleColor] $Color
-    [Comparer] $Comparer
-    [double] $Target
-}
-
+    [Color] $Color
+    [scriptblock] $Predicate
+} 
 
 class Spark {
     [int] $Row
@@ -143,7 +268,7 @@ class Spark {
     [string] $Block
     
     [AllowNull()]
-    [ConsoleColor] $Color
+    [Color] $Color
 }
 
 
@@ -159,55 +284,6 @@ class Spark {
  
 #>
 #region Class Helpers ----------------------------------------------------------
-
-
-function New-Emphasis ($Color, $Comparer, $Target) {
-    # .Synopsis
-    #  Creates a new Emphasis object.
-    #  ConsoleColor -> Comparer -> double -> Emphasis
-    # .Notes
-    #  Replaces the emph pattern used in sparklines.py
-
-    [Emphasis] @{
-        Color    = $Color
-        Comparer = $Comparer
-        Target   = $Target
-    } 
-}
-
-
-function Get-EmphasisIndex ($a, $d) {
-    # .Synopsis 
-    #  Creates a filter function from an Emphasis Dictionary. Then, creates a hashtable keyed with
-    #  the indices of the array whose values pass through the filter. The keys hold the color object
-    #  for that index.
-    #  double[] -> Dictionary<string, Emphasis> -> hashtable<int, ConsoleColor>
-    # .Notes
-    #  Replaces _check_emphasis(numbers, emph)
-
-    $emphasized = @{}
-    $setEmphasized = {
-        $x = $_.Target
-        $filter = 
-            switch ($_.Comparer) {
-                eq { { $a[$_] -eq $x } }
-                ne { { $a[$_] -ne $x } }
-                gt { { $a[$_] -gt $x } }
-                ge { { $a[$_] -ge $x } }
-                lt { { $a[$_] -lt $x } }
-                le { { $a[$_] -le $x } }
-            }
-        $color = $_.Color
-        $setIdx = { $emphasized[$_] = $color } 
-
-        0..($a.Length - 1) |
-            Where-Object $filter | 
-            ForEach-Object $setIdx
-    }
-    
-    $d.Values.ForEach($setEmphasized) 
-    $emphasized
-}
 
 
 function Get-Max ($a, $b) { [Math]::Max($a, $b) }
@@ -258,6 +334,25 @@ function Get-ScaledValues {
     }
 }
 
+function Get-ColorArray ($ns, $xs) {
+    # .Synopsis
+    #  Get the colors mapped from a double array when passed through an array of predicates
+    #  double[] -> Emphasis[]? -> Color[]
+
+    foreach ($n in $ns) { 
+        $color = [Console]::ForegroundColor -as [Color]
+
+        foreach ($x in $xs) {
+            if ($x.Predicate.Invoke($n)) {
+                $color = $x.Color
+                break;
+            }
+        }
+
+        $color
+    } 
+}
+
 
 #endregion
 
@@ -272,208 +367,42 @@ function Get-ScaledValues {
 #>
 #region Public Commands --------------------------------------------------------
 
-function New-EmphasisTable {
-    <#
-    .Synopsis
-      A very simple function that creates a new table consumable by `Get-Sparkline`.
-      () -> Dictionary<string, Emphasis>
-    .Description
-      A very simple function that creates a new table consumable by `Get-Sparkline`.
-      You probably should not try modifiy the underlying Dictionary yourself. 
-      Use `Add-` and `Set-Emphasis` instead.
-      The underlying Dictionary type will not allow duplicate key entries.
-    .Example
-      PS> New-EmphasisTable | Add-Emphasis Red -Gt 50
-       Creates an emphasis dictionary with an emphasis that colors any sparkline representing
-       a number greater than 50 red. Add to `Get-Sparkline`.
-    .Link
-      Add-Emphasis
-    .Link
-      Set-Emphasis
-    .Link
-      Get-Sparkline
-    .Outputs 
-      Dictionary<string, Emphasis>
-    .Inputs 
-      ()
-    .Notes
-      Replaces the emph pattern used in sparklines.py 
-    #>
 
-    [Dictionary[string, Emphasis]]::new()
-}
+function New-Emphasis ($Color, $Predicate) {
+<#
+  .Synopsis
+    Creates a new Emphasis object.
+  .Description
+    A public helper function that creates a new Emphasis object.
+    Emphasis objects allow for the colorization of sparks in a sparkline. 
+    The predicate parameter 
+  .Parameter Color
+    The color parameter capitalizes on PowerShell's powerful casting.
+    Pass it either a ConsoleColor name, e.g. 'Red' or an Ansi 256 color.
+    If an Ansi 256 color is passed above 16, the Color class will smartly select the closest ConsoleColor.
+  .Parameter Predicate
+    The predicate parameter must be a scriptblock.
+    The scriptblock should accept 1 parameter and evalulate to a boolean.
+  .Example
+    New-Emphasis -Color 'Red' -Predicate { param($x) $x -gt 50 }
+  .Example
+    New-Emphasis -Color 55 -Predicate { $x, $rest = $args; $x -in (6..13) } 
+  .Example 
+    New-Emphasis -Color 231 -Predicate { $args[0] -like '6*' } 
+  .Link
+    Get-Sparkline
+  .Notes
+    Replaces the emph pattern used in sparklines.py 
+#>
 
-
-function Add-Emphasis { 
-    <#
-    .Synopsis
-      A simple filter function that adds an emphasis to an Emphasis Dictionary.
-      Dictionary<string, Emphasis> -> Dictionary<string, Emphasis>
-    .Description
-      A simple filter function that adds an emphasis to an Emphasis Dictionary.
-      A dictionary must be piped into this filter.
-      Because the underlying Dictionary will not accept duplicate keys, the type will throw
-      an exception if you try to add duplicate color keys. Use `Set-Emphasis` to change an emphasis entry. 
-    .Example
-      PS> New-EmphasisTable | Add-Emphasis Red -Gt 50
-       Creates an emphasis dictionary with an emphasis that colors any sparkline representing
-       a number greater than 50 red. Save to a variable and add to `Get-Sparkline`. 
-    .Link
-      New-EmphasisTable
-    .Link
-      Set-EmphasisTable
-    .Link
-      Get-Sparkline
-    .Outputs
-      Dictionary<string, Emphasis>
-    .Inputs 
-      Dictionary<string, Emphasis> 
-    .Notes
-      Replaces the emph pattern used in sparklines.py 
-    #>
-
-    param(
-        # The color to highlight numbers meeting the emphasis test.
-        [Parameter(Position = 0)]
-        [ConsoleColor] $Color
-        ,
-        # The a numeric representing the target to test against. Must be castable to a double.
-        [Parameter(Position = 2)]
-        [double] $Target
-        ,
-        # An equals comparison.
-        [Parameter(Position = 1, ParameterSetName = 'EqualSet')]
-        [switch] $Eq
-        ,
-        # A not equals comparison.
-        [Parameter(Position = 1, ParameterSetName = 'NotEqualSet')]
-        [switch] $Ne
-        ,
-        # A less-than comparison.
-        [Parameter(Position = 1, ParameterSetName = 'LessThanSet')]
-        [switch] $Lt
-        ,
-        # A less-than-or-equals comparison.
-        [Parameter(Position = 1, ParameterSetName = 'LessThanOrEqualSet')]
-        [switch] $Le
-        ,
-        # A greater-than comparison.
-        [Parameter(Position = 1, ParameterSetName = 'GreaterThanSet')]
-        [switch] $Gt
-        ,
-        # A greater-than-or-equals comparison.
-        [Parameter(Position = 1, ParameterSetName = 'GreaterThanOrEqualSet')]
-        [switch] $Ge
-        ,
-        # The incoming Emphasis object
-        [Parameter(ValueFromPipeline)]
-        [Dictionary[string, Emphasis]] $InputObject
-    )
-
-    process { 
-        [Comparer] $comparer = 
-            switch ($PSCmdlet.ParameterSetName) {
-                EqualSet              { 'Eq' }
-                NotEqualSet           { 'Ne' }
-                LessThanSet           { 'Lt' }
-                LessThanOrEqualSet    { 'Le' }
-                GreaterThanSet        { 'Gt' }
-                GreaterThanOrEqualSet { 'Ge' }
-            }
-
-        $o = New-Emphasis $Color $comparer $Target 
-
-        [void] $InputObject.Add($o.Color.ToString(), $o)
-        $InputObject
-    }
-}
-
-function Set-Emphasis { 
-    <#
-    .Synopsis
-      A simple filter function that sets an emphasis to an Emphasis Dictionary.
-      Dictionary<string, Emphasis> -> Dictionary<string, Emphasis>
-    .Description
-      A simple filter function that sets an emphasis to an Emphasis Dictionary.
-      A dictionary must be piped into this filter.
-      Use `Set-Emphasis` to change the emphasis for an existing color key.
-    .Example
-      PS> $t | Set-Emphasis Red -Gt 70
-       Changes the Emphasis for the Red entry in the EmphasisTable t. 
-       If the entry does not exist, Set-Emphasis will add it. 
-    .Link
-      New-EmphasisTable
-    .Link
-      Set-EmphasisTable
-    .Link
-      Get-Sparkline
-    .Outputs
-      Dictionary<string, Emphasis>
-    .Inputs 
-      Dictionary<string, Emphasis> 
-    .Notes
-      Replaces the emph pattern used in sparklines.py 
-    #>
-
-    param(
-        # The color to highlight numbers meeting the emphasis test.
-        [Parameter(Position = 0)]
-        [ConsoleColor] $Color
-        ,
-        # The a numeric representing the target to test against. Must be castable to a double.
-        [Parameter(Position = 2)]
-        [double] $Target
-        ,
-        # An equals comparison.
-        [Parameter(Position = 1, ParameterSetName = 'EqualSet')]
-        [switch] $Eq
-        ,
-        # A not equals comparison.
-        [Parameter(Position = 1, ParameterSetName = 'NotEqualSet')]
-        [switch] $Ne
-        ,
-        # A less-than comparison.
-        [Parameter(Position = 1, ParameterSetName = 'LessThanSet')]
-        [switch] $Lt
-        ,
-        # A less-than-or-equals comparison.
-        [Parameter(Position = 1, ParameterSetName = 'LessThanOrEqualSet')]
-        [switch] $Le
-        ,
-        # A greater-than comparison.
-        [Parameter(Position = 1, ParameterSetName = 'GreaterThanSet')]
-        [switch] $Gt
-        ,
-        # A greater-than-or-equals comparison.
-        [Parameter(Position = 1, ParameterSetName = 'GreaterThanOrEqualSet')]
-        [switch] $Ge
-        ,
-        # The incoming Emphasis object
-        [Parameter(ValueFromPipeline)]
-        [Dictionary[string, Emphasis]] $InputObject 
-    )
-
-    process { 
-        [Comparer] $comparer = 
-            switch ($PSCmdlet.ParameterSetName) {
-                EqualSet              { 'Eq' }
-                NotEqualSet           { 'Ne' }
-                LessThanSet           { 'Lt' }
-                LessThanOrEqualSet    { 'Le' }
-                GreaterThanSet        { 'Gt' }
-                GreaterThanOrEqualSet { 'Ge' }
-            }
-
-        $o = New-Emphasis $Color $comparer $Target 
-        $InputObject[$o.Color.ToString()] = $o
-
-        $InputObject
-    }
-}
-
+    [Emphasis] @{
+        Color = $Color
+        Predicate = $Predicate
+    } 
+} 
 
 function Get-Sparkline {
-    <#
+<#
   .Synopsis
     Return an array of sparkline objects for a given list of input numbers.
   .Description
@@ -491,8 +420,7 @@ function Get-Sparkline {
      █▄█
     ▁███
   .Example 
-    PS> Get-Sparkline -Numbers 20, 80, 60, 100 -EmphasisTable (New-Emphasis | 
-      Add-Emphasis Red -Gt 70) | Show-Sparkline
+    PS> Get-Sparkline -Numbers 20, 80, 60, 100 -Emphasis (New-Emphasis -Color Red -Predicate { param($x) $x -gt 70 } | Show-Sparkline
   
     This will display a sparkline in the host with the second and fourth bar colored red, 
     if the host is capable.
@@ -501,11 +429,7 @@ function Get-Sparkline {
 
     One possible way to capture the output of `Show-Sparkline`.
   .Link
-    New-EmphasisTable
-  .Link
-    Add-Emphasis
-  .Link
-    Set-Emphasis
+    New-Emphasis
   .Link
     Write-Sparkline
   .Link
@@ -513,7 +437,7 @@ function Get-Sparkline {
   .Inputs
     double[]
   .Outputs
-    Sparkline[]
+    Sparks[]
   .Notes
     Replaces sparklines(numbers=[], num_lines=1, emph=None, verboe=False,
       minimum=None, maximum=None, wrap=None). Wrap is not
@@ -529,9 +453,9 @@ function Get-Sparkline {
         [ValidateScript({ Assert-Positive $_ })]
         [int] $NumLines = 1
         , 
-        # A Dictionary that will color certain sparks based on simple logical tests.
-        [System.Collections.Generic.Dictionary[string, Emphasis]] $EmphasisTable
-        , 
+        # An array of Emphasis objects that will color certain sparks based on simple logical tests.
+        $Emphasis  # For some reason cannot be [Emphasis[]]?
+        ,
         # The lowest number to display on the sparkline--a high-pass filter.
         [double] $Minimum
         ,
@@ -544,23 +468,19 @@ function Get-Sparkline {
     }
 
     process {
-        [void] $Numbers.ForEach({ $ls.Add($_) })
+        [void] $Numbers.ForEach{ $ls.Add($_) }
     }
 
     end {
-        $PSBoundParameters.Numbers = $ls.ToArray()
-  
-        $t = $EmphasisTable
+        $PSBoundParameters.Numbers = $ls.ToArray() 
+        $xs = $Emphasis
 
         # Remove params from the hashtable to allow for easy-reuse
-        [void] $PSBoundParameters.Remove('EmphasisTable')
+        [void] $PSBoundParameters.Remove('Emphasis')
 
         Test-NegativeNumber $ls.ToArray()
 
-        $x = Get-EmphasisIndex $ls.ToArray() $t
-
-        # At this point, the original python script uses batch() 
-        # Batch is a Split-Array function that chunks an array into subarrays
+        $x = Get-ColorArray $ls.ToArray() $xs
 
         Get-ScaledValues @PSBoundParameters | ForEach-Object { $c = 0 } {
             $v = $_ 
@@ -574,7 +494,7 @@ function Get-Sparkline {
                     Col   = $c
                     Val   = $vs
                     Block = $Config.Blocks[$vs]
-                    Color = ($PSparklines.DefaultForegroundColor, $x[$c])[$x.ContainsKey($c)]
+                    Color = $x[$c]
                 }
 
                 $r++
@@ -592,14 +512,20 @@ function Show-Sparkline {
       Format the pipelined Sparkline and send it to the information stream and write it to the host.
     .Description
       Format the pipelined Sparkline and send it to the information stream and write it to the host.
-      Allows for in host formatting and colorization if the Sparkline array was defined with an EmphasisTable.
+      Allows for in host formatting and colorization if the Sparkline array was defined with an Emphasis.
+      If the console host support virtual terminal codes and 24 bit color, use the ansi switch to get enhanced colors defined by Emphasis objects.
     .Example
       PS> Get-Sparkline 1,2,3,4 | Show-Sparkline
+    .Example
+      PS> Get-Sparkline 1,2,3,4 -Emphasis (New-Emphasis -Color 55 -Predicate { param($x) $x -eq 2 }) | Show-Sparkline -Ansi
     #>
 
     param(
         # Do not terminate the sparkline with a newline.
         [switch] $NoNewline
+        ,
+        # Use the 256 Ansi Colors
+        [switch] $Ansi 
     )
 
     $input |
@@ -616,7 +542,12 @@ function Show-Sparkline {
             $r--
         }
         
-        Write-Host $x.Block -ForegroundColor $x.Color -NoNewline
+        if ($Ansi.IsPresent) {
+            Write-Host ("{2}[38;5;{0}m{1}{2}[0m" -f $x.Color.Value, $x.Block, $PSparklines.Esc) -NoNewline 
+        }
+        else {
+            Write-Host $x.Block -ForegroundColor $x.Color.ConsoleColor -NoNewline 
+        } 
     }
 
     Write-Host -NoNewline:$NoNewline.IsPresent
@@ -633,7 +564,7 @@ function Write-Sparkline {
     $input |
         Group-Object Row |
         Sort-Object Name -Descending | 
-        ForEach-Object { -join $_.Group.Block }
+        ForEach-Object { -join $_.Group.Block } 
 }
 
 #endregion

@@ -12,7 +12,7 @@
 RootModule = 'PSparklines.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.3'
+ModuleVersion = '2.0.0'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -33,7 +33,7 @@ Copyright = '2020'
 Description = 'A very simple way to show text sparklines in the console'
 
 # Minimum version of the Windows PowerShell engine required by this module
-PowerShellVersion = '4.0'
+PowerShellVersion = '5.1'
 
 # Name of the Windows PowerShell host required by this module
 # PowerShellHostName = ''
@@ -69,8 +69,7 @@ PowerShellVersion = '4.0'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = 'New-EmphasisTable', 'Add-Emphasis', 'Set-Emphasis', 'Get-Sparkline', 
-               'Show-Sparkline', 'Write-Sparkline'
+FunctionsToExport = 'New-Emphasis', 'Get-Sparkline', 'Show-Sparkline', 'Write-Sparkline'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()
@@ -127,6 +126,21 @@ Change PSparklines.psm1
 - Fix empty negative number warning on non-pipelined input.
   This error was caused by a typo in magic method call.
   Merged PR#1. 
+
+2.0.0 -- Ansi Time -- 2022 Jul 14 
+Breaking change!
+Adds ANSI color support through robust internal Color class.
+Removes convoluted Emphasis logic through bad comparison tables and associated supporting functions.
+Emphasis to use simple predicate functions that allows for more complex selection logic.
+
+Change PSparklines.psm1 
+- Remove New-EmphasisTable
+- Remove Add-Emphasis
+- Remove Set-Emphasis
+- Change Emphasis class
+- Add Color class 
+- Change Get-Sparkline and Show-Sparkline functions to reflect new Emphasis changes
+- Add New-Emphasis function
 '@
 
     } # End of PSData hashtable

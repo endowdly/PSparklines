@@ -17,49 +17,7 @@ scoop bucket add endo-scoop "https://github.com/endowdly/endo-scoop"  # Name the
 scoop install psparklines
 ```
 
-## Usage
- 
-``` powershell
-<#
-.Synopsis
-  This module is a very simple way to show text sparklines in the console.
-.Description
-  This module is a very simple way to show text sparklines in the console.
-  It was ported to PowerShell from Python. The original package is sparklines.py.
-  It is hosted on github.com at github.com/deeplook/sparklines.
-  
-  This module does implement emphasis in a manner similar to the original.
-  However, instead of a simple string pattern, it uses Emphasis objects.
-  Objects are added to a dictionary with functions that support auto-completion.
-
-  This module does not implement the batching (array splitting) that sparklines used.
-  This module does not implement ANSI colors, although the new consoles for PowerShell support color codes.
-
-  This module also outputs Sparklines as objects and uses two different functions to write them.
-  `Show-Sparkline` will write the sparkline to the host and STDINFO (6) and colorize based on an emphasis table.
-  `Write-Sparkline` will write the sparkline to STDOUT (1) as a string for further parsing or use.
-  Because `Get-Sparkline` will write objects, the user can write a custom function to write the sparkline
-  how they need if the default functions are inadequate.
-
-  Cmdlets/Functions for Sparklines:
-    Get-Sparkline
-    Write-Sparkline
-    Show-Sparkline
-
-  Cmdlets/Functions for Emphasis:
-    New-EmphasisTable
-    Add-Emphasis
-    Set-Emphasis
-.Example
-  PS> Get-Sparkline 25, 50, 75, 100, 25 -EmphasisTable (New-EmphasisTable | Add-Emphasis Red -Gt 50) |
-    Show-Sparkline
-
-    Display a sparkline in the host of line height 1 with every bar representing a number greater than 50
-    as ConsoleColor.Red
-#>
-```
-
-## Some more examples
+## Examples
 
 ``` powershell
 PS> Get-Sparkline 1,2,3,4,5,6,7,8 | Write-Sparkline
@@ -76,12 +34,32 @@ PS> Get-Sparkline $n -NumLines 3 | Write-Sparkline
 ▂▁ █ ▂▃▆███
 ██▆█▁██████
 
-PS> $t = New-EmphasisTable |
-    Add-Emphasis Red -Gt 50 |
-    Add-Emphasis Green -Eq 36
+PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
+    New-Empahsis -Color 55 -Predicate { param($x) $x -like '5*' } # 55 is like a dark magenta
+    New-Emphasis -Color 'Red' -Predicate { param($x) $x -gt 50 }
+    New-Empahsis -Color 'Green' -Predicate { param($x) $x -eq 36 }
+) Show-Sparkline 
+```
+
+![Result](./exampleNoAnsi.png)
+
+```powershell
+
+# To show the difference between 16 bit color and 24 bit color *if your console supports VT ANSI commands and 24 bit color*
+
+PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
+    New-Empahsis -Color 55 -Predicate { param($x) $x -like '5*' } # 55 is like a dark magenta
+    New-Emphasis -Color 'Red' -Predicate { param($x) $x -gt 50 }
+    New-Empahsis -Color 'Green' -Predicate { param($x) $x -eq 36 }
+
+) Show-Sparkline -Ansi
 ```
 
 ![Result](./example.png)
+
+## Emphasis
+
+As shown above, the **first** Emphasis object that has a true predicate will determine the color of the spark index. 
 
 ## Why?
 
