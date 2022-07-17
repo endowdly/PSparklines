@@ -199,7 +199,7 @@ class Color {
             }
         } else {
             $br =
-            if ($r -gt 128 -or $g -gt 128 -or $g -gt 128) {
+            if ($r -gt 128 -or $g -gt 128 -or $b -gt 128) {
                 7
             } else {
                 0
