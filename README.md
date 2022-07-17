@@ -59,7 +59,7 @@ PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
 
 ## Emphasis
 
-As shown above, the **first** Emphasis object that has a true predicate will determine the color of the spark index. 
+As shown above, the **first** Emphasis object that has a true predicate will determine the color of the spark index.
 
 ## Why?
 

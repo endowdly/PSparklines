@@ -2,14 +2,14 @@ using namespace System.Collections;
 using namespace System.Collections.Generic;
 
 <#
- 
-   ____  ____                   _    _ _                 
-  |  _ \/ ___| _ __   __ _ _ __| | _| (_)_ __   ___  ___ 
+
+   ____  ____                   _    _ _
+  |  _ \/ ___| _ __   __ _ _ __| | _| (_)_ __   ___  ___
   | |_) \___ \| '_ \ / _` | '__| |/ / | | '_ \ / _ \/ __|
   |  __/ ___) | |_) | (_| | |  |   <| | | | | |  __/\__ \
   |_|   |____/| .__/ \__,_|_|  |_|\_\_|_|_| |_|\___||___/
-              |_|                                        
- 
+              |_|
+
 #>
 <#
 .Synopsis
@@ -18,9 +18,9 @@ using namespace System.Collections.Generic;
   This module is a very simple way to show text sparklines in the console.
   It was ported to PowerShell from Python. The original package is sparklines.py.
   It is hosted on github.com at github.com/deeplook/sparklines.
-  
+
   This module does implement emphasis in a manner similar to the original.
-  However, instead of a simple string pattern, it uses Emphasis objects. 
+  However, instead of a simple string pattern, it uses Emphasis objects.
   Objects are added to a dictionary with functions that support auto-completion.
 
   This module does not implement the batching (array splitting) that sparklines used.
@@ -28,9 +28,9 @@ using namespace System.Collections.Generic;
 
   This module also outputs Sparklines as objects and uses two different functions to write them.
   `Show-Sparkline` will write the sparkline to the host and STDINFO (6) and colorize based on an emphasis table.
-  `Write-Sparkline` will write the sparkline to STDOUT (1) as a string for further parsing or use. 
+  `Write-Sparkline` will write the sparkline to STDOUT (1) as a string for further parsing or use.
   Because `Get-Sparkline` will write objects, the user can write a custom function to write the sparkline
-  how they need if the default functions are inadequate. 
+  how they need if the default functions are inadequate.
 
   Cmdlets/Functions for Sparklines:
     Get-Sparkline
@@ -53,40 +53,39 @@ param()
 # Idea: PowerShell 7 is so much easier to work with more 'programmatic' PS -- consider requiring it
 
 <#
- 
-   ___      _             
-  / __| ___| |_ _  _ _ __ 
+
+   ___      _
+  / __| ___| |_ _  _ _ __
   \__ \/ -_)  _| || | '_ \
   |___/\___|\__|\_,_| .__/
-                    |_|   
- 
+                    |_|
+
 #>
 #region Setup ------------------------------------------------------------------
 
 # Module variables go here
 Set-Variable PSparklines -Option ReadOnly -Value @{
     DefaultForegroundColor = [Console]::ForegroundColor
-    ModuleName = 'PSparklines'
-    Esc = [char] 0x1b
+    ModuleName             = 'PSparklines'
+    Esc                    = [char] 0x1b
 }
 
-$ErrorActionPreference = 'Stop' 
-$ResourceFile = @{ 
+$ErrorActionPreference = 'Stop'
+$ResourceFile = @{
     BindingVariable = 'Resources'
-    BaseDirectory = $PSScriptRoot
-    FileName = $PSparklines.ModuleName + '.Resources.psd1'
+    BaseDirectory   = $PSScriptRoot
+    FileName        = $PSparklines.ModuleName + '.Resources.psd1'
 }
 $ConfigFile = @{
     BindingVariable = 'Config'
-    BaseDirectory = $PSScriptRoot
-    FileName = $PSparklines.ModuleName + '.Config.psd1'
+    BaseDirectory   = $PSScriptRoot
+    FileName        = $PSparklines.ModuleName + '.Config.psd1'
 }
 
 # Try to import the resource file
 try {
-    Import-LocalizedData @ResourceFile 
-}
-catch {
+    Import-LocalizedData @ResourceFile
+} catch {
     # Uh-oh. The module is likely broken if this file cannot be found.
     Import-LocalizedData @ResourceFile -UICulture en-US
 }
@@ -94,14 +93,13 @@ catch {
 # Try to import the config file.
 try {
     Import-LocalizedData @ConfigFile
-}
-catch { 
+} catch {
     # The config file is missing. Not a big deal! Here's a default Config.
     $Config = @{
         Blocks = @'
  ▁▂▃▄▅▆▇█
 '@
-    } 
+    }
 }
 
 
@@ -109,57 +107,56 @@ catch {
 #endregion
 
 <#
- 
-    ___ _                    
+
+    ___ _
    / __| |__ _ ______ ___ ___
   | (__| / _` (_-<_-</ -_|_-<
    \___|_\__,_/__/__/\___/__/
-                             
- 
+
+
 #>
 #region Module Classes ---------------------------------------------------------
 
 
-class Color { 
+class Color {
     [byte] $R
     [byte] $G
     [byte] $B
     [byte] $Value
     [ConsoleColor] $ConsoleColor
 
-    Color($n) { 
+    Color($n) {
         $x = $n -as [int]
 
         if ($x -is [int]) {
             $this.Value = $n
-        } 
-        else {
-            $this.Value = 
-                switch ($n) {
-                    Black       { 0 }
-                    DarkRed     { 1 }
-                    DarkGreen   { 2 }
-                    DarkYellow  { 3 }
-                    DarkBlue    { 4 }
-                    DarkMagenta { 5 }
-                    DarkCyan    { 6 }
-                    Gray        { 7 }
-                    DarkGray    { 8 }
-                    Red         { 9 }
-                    Green       { 10 }
-                    Yellow      { 11 }
-                    Blue        { 12 }
-                    Magenta     { 13 }
-                    Cyan        { 14 }
-                    White       { 15 }
-                    default     { 0 } # Todo: Drawing.Color -> rgb -> ansi
-                } 
-        } 
+        } else {
+            $this.Value =
+            switch ($n) {
+                Black { 0 }
+                DarkRed { 1 }
+                DarkGreen { 2 }
+                DarkYellow { 3 }
+                DarkBlue { 4 }
+                DarkMagenta { 5 }
+                DarkCyan { 6 }
+                Gray { 7 }
+                DarkGray { 8 }
+                Red { 9 }
+                Green { 10 }
+                Yellow { 11 }
+                Blue { 12 }
+                Magenta { 13 }
+                Cyan { 14 }
+                White { 15 }
+                default { 0 } # Todo: Drawing.Color -> rgb -> ansi
+            }
+        }
 
         $this.R, $this.G, $this.B = [Color]::RgbFromAnsi256($this.Value)
-        $this.ConsoleColor = [Color]::ConsoleColorFromAnsi($this.Value) 
+        $this.ConsoleColor = [Color]::ConsoleColorFromAnsi($this.Value)
     }
-    
+
     static [int] CubeValue($n) {
         return @(
             0
@@ -181,7 +178,7 @@ class Color {
                 [Color]::CubeValue($idx / 6 % 6),
                 [Color]::CubeValue($idx % 6)
             }
-            default { 
+            default {
                 $gr = ($n - 232) * 10 + 8
 
                 $gr, $gr, $gr
@@ -192,30 +189,28 @@ class Color {
     }
 
     static [ConsoleColor] ClosestConsoleColorFromRgb($r, $g, $b) {
-        $color = 
-            if ($r -eq $g -and $g -eq $b) {
-                switch ($r) {
-                    { $r -gt 192 } { 0xf } # 0b1111
-                    { $r -gt 128 } { 7 }   # 0b0111
-                    { $r -gt 64 }  { 8 }   # 0b1000
-                    default { 0 }
-                } 
+        $color =
+        if ($r -eq $g -and $g -eq $b) {
+            switch ($r) {
+                { $r -gt 192 } { 0xf } # 0b1111
+                { $r -gt 128 } { 7 }   # 0b0111
+                { $r -gt 64 } { 8 }   # 0b1000
+                default { 0 }
             }
-            else {
-                $br = 
-                    if ($r -gt 128 -or $g -gt 128 -or $g -gt 128) {
-                        7
-                    }
-                    else {
-                        0
-                    }
-
-                $rb = if ($r -gt 64) { 4 } else { 0 } # 0b0100
-                $gb = if ($g -gt 64) { 2 } else { 0 } # 0b0010
-                $bb = if ($b -gt 64) { 1 } else { 0 } # 0b0001
-
-                $br -bor $rb -bor $gb -bor $bb 
+        } else {
+            $br =
+            if ($r -gt 128 -or $g -gt 128 -or $g -gt 128) {
+                7
+            } else {
+                0
             }
+
+            $rb = if ($r -gt 64) { 4 } else { 0 } # 0b0100
+            $gb = if ($g -gt 64) { 2 } else { 0 } # 0b0010
+            $bb = if ($b -gt 64) { 1 } else { 0 } # 0b0001
+
+            $br -bor $rb -bor $gb -bor $bb
+        }
 
         return $color
     }
@@ -239,16 +234,16 @@ class Color {
             [ConsoleColor]::Cyan
             [ConsoleColor]::White
         )
-        $color = 
-            switch ($n) {
-                { $n -lt 16 } { $colorMap[$n] } 
-                default { 
-                    $x, $y, $z = [Color]::RgbFromAnsi256($n) 
-                    [Color]::ClosestConsoleColorFromRgb($x, $y, $z)
-                }
+        $color =
+        switch ($n) {
+            { $n -lt 16 } { $colorMap[$n] }
+            default {
+                $x, $y, $z = [Color]::RgbFromAnsi256($n)
+                [Color]::ClosestConsoleColorFromRgb($x, $y, $z)
             }
+        }
 
-        return $color 
+        return $color
     }
 
     [string] ToString() {
@@ -259,14 +254,14 @@ class Color {
 class Emphasis {
     [Color] $Color
     [scriptblock] $Predicate
-} 
+}
 
 class Spark {
     [int] $Row
     [int] $Col
     [int] $Val
     [string] $Block
-    
+
     [AllowNull()]
     [Color] $Color
 }
@@ -275,13 +270,13 @@ class Spark {
 #endregion
 
 <#
- 
-   _  _     _                  
+
+   _  _     _
   | || |___| |_ __  ___ _ _ ___
   | __ / -_) | '_ \/ -_) '_(_-<
   |_||_\___|_| .__/\___|_| /__/
-             |_|               
- 
+             |_|
+
 #>
 #region Class Helpers ----------------------------------------------------------
 
@@ -298,11 +293,11 @@ function Get-ScaledValues {
     # .Notes
     #  Replaces scale_values(numbers, num_lines=1, minium=None, maximum=None)
 
-    param( 
+    param(
         [double[]] $Numbers
-        , 
+        ,
         [int] $NumLines = 1
-        , 
+        ,
         [double] $Minimum
         ,
         [double] $Maximum
@@ -314,15 +309,15 @@ function Get-ScaledValues {
 
     $min = ($Minimum, $mo.Minimum)[!$Minimum]
     $max = ($Maximum, $mo.Maximum)[!$Maximum]
-    $dv = $max - $min 
+    $dv = $max - $min
     $nums = $Numbers.ForEach{ Max (Min $_ $max) $min }
     $getValue = {
         $maxIndex = $NumLines * ($Config.Blocks.Length - 1)
 
-        (($maxIndex - 1) * ($_ - $min)) / $dv + 1 
-    } 
-    $roundValue = { 
-        $v = RoundUp $_ 
+        (($maxIndex - 1) * ($_ - $min)) / $dv + 1
+    }
+    $roundValue = {
+        $v = RoundUp $_
 
         (1, $v)[$v -gt 0]
     }
@@ -339,7 +334,7 @@ function Get-ColorArray ($ns, $xs) {
     #  Get the colors mapped from a double array when passed through an array of predicates
     #  double[] -> Emphasis[]? -> Color[]
 
-    foreach ($n in $ns) { 
+    foreach ($n in $ns) {
         $color = [Console]::ForegroundColor -as [Color]
 
         foreach ($x in $xs) {
@@ -350,79 +345,79 @@ function Get-ColorArray ($ns, $xs) {
         }
 
         $color
-    } 
+    }
 }
 
 
 #endregion
 
 <#
- 
-   ___      _    _ _    
-  | _ \_  _| |__| (_)__ 
+
+   ___      _    _ _
+  | _ \_  _| |__| (_)__
   |  _/ || | '_ \ | / _|
   |_|  \_,_|_.__/_|_\__|
-                        
- 
+
+
 #>
 #region Public Commands --------------------------------------------------------
 
 
 function New-Emphasis ($Color, $Predicate) {
-<#
+    <#
   .Synopsis
     Creates a new Emphasis object.
   .Description
     A public helper function that creates a new Emphasis object.
-    Emphasis objects allow for the colorization of sparks in a sparkline. 
-    The predicate parameter 
+    Emphasis objects allow for the colorization of sparks in a sparkline.
+    The predicate parameter
   .Parameter Color
     The color parameter capitalizes on PowerShell's powerful casting.
     Pass it either a ConsoleColor name, e.g. 'Red' or an Ansi 256 color.
     If an Ansi 256 color is passed above 16, the Color class will smartly select the closest ConsoleColor.
   .Parameter Predicate
     The predicate parameter must be a scriptblock.
-    The scriptblock should accept 1 parameter and evalulate to a boolean.
+    The scriptblock should accept 1 parameter and evaluate to a boolean.
   .Example
     New-Emphasis -Color 'Red' -Predicate { param($x) $x -gt 50 }
   .Example
-    New-Emphasis -Color 55 -Predicate { $x, $rest = $args; $x -in (6..13) } 
-  .Example 
-    New-Emphasis -Color 231 -Predicate { $args[0] -like '6*' } 
+    New-Emphasis -Color 55 -Predicate { $x, $rest = $args; $x -in (6..13) }
+  .Example
+    New-Emphasis -Color 231 -Predicate { $args[0] -like '6*' }
   .Link
     Get-Sparkline
   .Notes
-    Replaces the emph pattern used in sparklines.py 
+    Replaces the emph pattern used in sparklines.py
 #>
 
     [Emphasis] @{
-        Color = $Color
+        Color     = $Color
         Predicate = $Predicate
-    } 
-} 
+    }
+}
 
 function Get-Sparkline {
-<#
+    <#
   .Synopsis
     Return an array of sparkline objects for a given list of input numbers.
   .Description
     Return an array of sparkline objects for a given list of input numbers.
   .Example
-    PS> Get-Sparkline -Numbers 20, 80, 60, 100 
+    PS> Get-Sparkline -Numbers 20, 80, 60, 100
       Returns sparkline objects representing the numbers 20, 80, 60, 100.
   .Example
     PS> Get-Sparkline -Numbers 20, 80, 60, 100 | Write-Sparkline
-      
+
     ▁▆▄█
   .Example
     PS> Get-Sparkline -Numbers 20, 80, 60, 100 -NumLines 3 | Write-Sparkline
      ▂ █
      █▄█
     ▁███
-  .Example 
+  .Example
     PS> Get-Sparkline -Numbers 20, 80, 60, 100 -Emphasis (New-Emphasis -Color Red -Predicate { param($x) $x -gt 70 } | Show-Sparkline
-  
-    This will display a sparkline in the host with the second and fourth bar colored red, 
+
+    This will display a sparkline in the host with the second and fourth bar colored red,
     if the host is capable.
   .Example
     PS> -join (Get-Sparkline 1,2,3,4 | Show-Sparkline 6>&1)
@@ -441,18 +436,18 @@ function Get-Sparkline {
   .Notes
     Replaces sparklines(numbers=[], num_lines=1, emph=None, verboe=False,
       minimum=None, maximum=None, wrap=None). Wrap is not
-  #> 
+  #>
 
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')] 
-    param( 
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
+    param(
         # An array of numbers to turn into a sparkline.
         [Parameter(ValueFromPipeline)]
-        [double[]] $Numbers 
-        , 
+        [double[]] $Numbers
+        ,
         # The number of lines to write or show the sparkline on. Must be positive.
         [ValidateScript({ Assert-Positive $_ })]
         [int] $NumLines = 1
-        , 
+        ,
         # An array of Emphasis objects that will color certain sparks based on simple logical tests.
         $Emphasis  # For some reason cannot be [Emphasis[]]?
         ,
@@ -472,7 +467,7 @@ function Get-Sparkline {
     }
 
     end {
-        $PSBoundParameters.Numbers = $ls.ToArray() 
+        $PSBoundParameters.Numbers = $ls.ToArray()
         $xs = $Emphasis
 
         # Remove params from the hashtable to allow for easy-reuse
@@ -483,9 +478,9 @@ function Get-Sparkline {
         $x = Get-ColorArray $ls.ToArray() $xs
 
         Get-ScaledValues @PSBoundParameters | ForEach-Object { $c = 0 } {
-            $v = $_ 
+            $v = $_
 
-            1..$NumLines | ForEach-Object { $r = 0 } {         
+            1..$NumLines | ForEach-Object { $r = 0 } {
                 $vs = Min $v 8
                 $v = Max 0 ($v - 8)
 
@@ -525,13 +520,13 @@ function Show-Sparkline {
         [switch] $NoNewline
         ,
         # Use the 256 Ansi Colors
-        [switch] $Ansi 
+        [switch] $Ansi
     )
 
     $input |
-        Sort-Object @{ Expression="Row"; Descending=$true }, Col -OutVariable sparks |
+        Sort-Object @{ Expression = 'Row'; Descending = $true }, Col -OutVariable sparks |
         Measure-Object -Property Row -Maximum |
-        Set-Variable mo 
+        Set-Variable mo
 
     $r = $mo.Maximum
 
@@ -541,13 +536,12 @@ function Show-Sparkline {
             Write-Host
             $r--
         }
-        
+
         if ($Ansi.IsPresent) {
-            Write-Host ("{2}[38;5;{0}m{1}{2}[0m" -f $x.Color.Value, $x.Block, $PSparklines.Esc) -NoNewline 
+            Write-Host ('{2}[38;5;{0}m{1}{2}[0m' -f $x.Color.Value, $x.Block, $PSparklines.Esc) -NoNewline
+        } else {
+            Write-Host $x.Block -ForegroundColor $x.Color.ConsoleColor -NoNewline
         }
-        else {
-            Write-Host $x.Block -ForegroundColor $x.Color.ConsoleColor -NoNewline 
-        } 
     }
 
     Write-Host -NoNewline:$NoNewline.IsPresent
@@ -559,28 +553,28 @@ function Write-Sparkline {
       Format the pipelines Sparkline and send it the standard output stream and write it as a string.
     .Example
       PS> Get-Sparkline 1,2,3,4 | Write-Sparkline
-    #> 
+    #>
 
     $input |
         Group-Object Row |
-        Sort-Object Name -Descending | 
-        ForEach-Object { -join $_.Group.Block } 
+        Sort-Object Name -Descending |
+        ForEach-Object { -join $_.Group.Block }
 }
 
 #endregion
 
 <#
- 
-     __ ,                                                         
-   ,-| ~           ,        ,,                                    
-  ('||/__,   _    ||        ||                      '         _   
- (( |||  |  < \, =||=  _-_  ||/\  _-_   _-_  -_-_  \\ \\/\\  / \\ 
- (( |||==|  /-||  ||  || \\ ||_< || \\ || \\ || \\ || || || || || 
-  ( / |  , (( ||  ||  ||/   || | ||/   ||/   || || || || || || || 
-   -____/   \/\\  \\, \\,/  \\,\ \\,/  \\,/  ||-'  \\ \\ \\ \\_-| 
-                                             |/              /  \ 
+
+     __ ,
+   ,-| ~           ,        ,,
+  ('||/__,   _    ||        ||                      '         _
+ (( |||  |  < \, =||=  _-_  ||/\  _-_   _-_  -_-_  \\ \\/\\  / \\
+ (( |||==|  /-||  ||  || \\ ||_< || \\ || \\ || \\ || || || || ||
+  ( / |  , (( ||  ||  ||/   || | ||/   ||/   || || || || || || ||
+   -____/   \/\\  \\, \\,/  \\,\ \\,/  \\,/  ||-'  \\ \\ \\ \\_-|
+                                             |/              /  \
                                              '              '----`
- 
+
 #>
 #region Gatekeeping ------------------------------------------------------------
 
@@ -588,7 +582,7 @@ function Write-Sparkline {
 function Assert-Positive ($n) {
     # .Synopsis
     #  Returns true if the number is greater than zero.
-    #  Otherwise, throws an exception. 
+    #  Otherwise, throws an exception.
     #  double -> bool
 
     $isNumeric = [double]::TryParse($n, [ref] $null)
@@ -601,14 +595,14 @@ function Assert-Positive ($n) {
         throw $Resources.InvalidNegative -f $n
     }
 
-    $true 
+    $true
 }
 
 
 filter Get-NegativeNumbers {
     # .Synopsis
     #  Passes numbers less than zero.
-    #  double[] -> double 
+    #  double[] -> double
 
     if ($_ -lt 0) {
         $_
@@ -617,15 +611,15 @@ filter Get-NegativeNumbers {
 
 
 function Write-Scolding {
-    # .Synopsis 
+    # .Synopsis
     #  Writes a warning for every negative number caught.
     #  Writes a general warning if any negative number is caught.
     #  double[] -> ()
 
-    process { 
+    process {
         Write-Warning ($Resources.FoundNegativeNum -f $_)
 
-        $b = $null -ne $_ 
+        $b = $null -ne $_
     }
 
     end {
@@ -639,11 +633,11 @@ function Write-Scolding {
 function Test-NegativeNumber ($a) {
     # .Synopsis
     #  Raise warning for negative numbers.
-    #  double[] -> () 
+    #  double[] -> ()
 
     $a |
         Get-NegativeNumbers |
-        Write-Scolding 
+        Write-Scolding
 }
 
 
