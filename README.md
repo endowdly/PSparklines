@@ -35,9 +35,9 @@ PS> Get-Sparkline $n -NumLines 3 | Write-Sparkline
 ██▆█▁██████
 
 PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
-    New-Empahsis -Color 55 -Predicate { param($x) $x -like '5*' } # 55 is like a dark magenta
+    New-Emphasis -Color 55 -Predicate { param($x) $x -like '5*' } # 55 is like a dark magenta
     New-Emphasis -Color 'Red' -Predicate { param($x) $x -gt 50 }
-    New-Empahsis -Color 'Green' -Predicate { param($x) $x -eq 36 }
+    New-Emphasis -Color 'Green' -Predicate { param($x) $x -eq 36 }
 ) | Show-Sparkline 
 ```
 
@@ -48,9 +48,9 @@ PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
 # To show the difference between 4 bit color and 8 bit color *if your console supports VT ANSI commands and 8 bit color*
 
 PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
-    New-Empahsis -Color 55 -Predicate { param($x) $x -like '5*' } # 55 is like a dark magenta
+    New-Emphasis -Color 55 -Predicate { param($x) $x -like '5*' } # 55 is like a dark magenta
     New-Emphasis -Color 'Red' -Predicate { param($x) $x -gt 50 }
-    New-Empahsis -Color 'Green' -Predicate { param($x) $x -eq 36 }
+    New-Emphasis -Color 'Green' -Predicate { param($x) $x -eq 36 }
 
 ) | Show-Sparkline -Ansi
 ```
@@ -59,7 +59,7 @@ PS> Get-Sparkline $n -NumLines 3 -Emphasis @(
 
 ## Emphasis
 
-As shown above, the **first** Emphasis object that has a true predicate will determine the color of the spark index. 
+As shown above, the **first** Emphasis object that has a true predicate will determine the color of the spark index.
 
 ## Why?
 
