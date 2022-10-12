@@ -12,7 +12,7 @@
 RootModule = 'PSparklines.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.0.0'
+ModuleVersion = '2.0.1'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -141,6 +141,22 @@ Change PSparklines.psm1
 - Add Color class 
 - Change Get-Sparkline and Show-Sparkline functions to reflect new Emphasis changes
 - Add New-Emphasis function
+
+2.0.1 -- Hotfix -- 2022 Jul 17
+Incoming fix from AjayKMehta
+
+Change README.md
+- Fix typos
+
+Change PSparklines.psm1
+- Fix whitespace
+- Format
+- Fix error that caused an 8bit ANSI -> ConsoleColor translation error on bright bit evaluation
+
+Cleanup by endowdly
+
+Remove PSparklines.todo
+- Like a vestigial appendage we no longer need
 '@
 
     } # End of PSData hashtable
